@@ -28,50 +28,52 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyRmCbL44Mr79zJ_V2dV1r13IW7KQFAT85SY-BkNwtjHndu-8s4ESnI9HNRu2t9VEymww/exec";
 
         function sendData() {
-            
-            const notes = document.getElementById('notes').value;
-            const status = document.getElementById('status');
-			
-            const start = document.getElementById('start').value;
-			const end = document.getElementById('end').value;
+    let start = document.getElementById('start').value;
+    let end = document.getElementById('end').value;
+    const notes = document.getElementById('notes').value;
+    const status = document.getElementById('status');
 
-			if (!start || !end) {
-				status.style.color = '#d9534f';
-				status.innerText = 'Lūdzu ievadiet abus laikus!';
-			return;
+    if (!start || !end) {
+        status.style.color = '#d9534f';
+        status.innerText = 'Lūdzu ievadiet abus laikus!';
+        return;
+    }
+
+    // Ja pārlūks tomēr atgriež sekundes (HH:MM:SS), paņemam tikai stundas un minūtes (HH:MM)
+    start = start.substring(0, 5);
+    end = end.substring(0, 5);
+
+    // Aprēķina stundas
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+    if (duration < 0) duration += 24;
+
+    status.style.color = '#0275d8';
+    status.innerText = 'Sūta datus...';
+
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            date: new Date().toISOString().split('T')[0],
+            startTime: start,
+            endTime: end,
+            durationHours: duration.toFixed(2),
+            notes: notes
+        })
+    }).then(() => {
+        status.style.color = '#5cb85c';
+        status.innerText = `Saglabāts! (${duration.toFixed(2)} h)`;
+        document.getElementById('start').value = '';
+        document.getElementById('end').value = '';
+        document.getElementById('notes').value = '';
+    }).catch(err => {
+        status.style.color = '#d9534f';
+        status.innerText = 'Kļūda nosūtot datus!';
+    });
 }
-
-            // Aprēķina stundas
-            const [h1, m1] = start.split(':').map(Number);
-            const [h2, m2] = end.split(':').map(Number);
-            let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
-            if (duration < 0) duration += 24;
-
-            status.style.color = 'blue';
-            status.innerText = 'Sūta...';
-
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Atļauj sūtīt no jebkuras vietas
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: new Date().toISOString().split('T')[0],
-                    startTime: start,
-                    endTime: end,
-                    durationHours: duration.toFixed(2),
-                    notes: notes
-                })
-            }).then(() => {
-                status.style.color = 'green';
-                status.innerText = `Saglabāts! (${duration.toFixed(2)} h)`;
-                document.getElementById('start').value = '';
-                document.getElementById('end').value = '';
-                document.getElementById('notes').value = '';
-            }).catch(err => {
-                status.style.color = 'red';
-                status.innerText = 'Kļūda nosūtot!';
-            });
-        }
     </script>
 </body>
 </html>
