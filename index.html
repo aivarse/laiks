@@ -15,11 +15,11 @@
 <body>
     <h3>Laika uzskaite</h3>
     
-    <label for="start">Sākums (HH:MM):</label>
-    <input type="text" id="start" placeholder="08:30" maxlength="5" pattern="[0-9]{2}:[0-9]{2}">
+    <label for="start">Sākums (stundas:minūtes):</label>
+    <input type="text" id="start" placeholder="06:10" maxlength="5">
 
-    <label for="end">Beigas (HH:MM):</label>
-    <input type="text" id="end" placeholder="11:00" maxlength="5" pattern="[0-9]{2}:[0-9]{2}">
+    <label for="end">Beigas (stundas:minūtes):</label>
+    <input type="text" id="end" placeholder="10:15" maxlength="5">
     
     <label for="notes">Piezīmes:</label>
     <input type="text" id="notes" placeholder="Piem. Maiņa 1">
@@ -42,17 +42,16 @@
                 return;
             }
 
-            // Pārbauda, vai formāts ir korekts (HH:MM)
-            const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-            if (!timeRegex.test(start) || !timeRegex.test(end)) {
+            // Aprēķina stundas
+            const [h1, m1] = start.split(':').map(Number);
+            const [h2, m2] = end.split(':').map(Number);
+            
+            if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) {
                 status.style.color = '#d9534f';
                 status.innerText = 'Ievadiet laiku formātā HH:MM (piem. 08:30)';
                 return;
             }
 
-            // Aprēķina stundas
-            const [h1, m1] = start.split(':').map(Number);
-            const [h2, m2] = end.split(':').map(Number);
             let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
             if (duration < 0) duration += 24;
 
