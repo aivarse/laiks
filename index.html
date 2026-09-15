@@ -14,10 +14,11 @@
 </head>
 <body>
     <h3>Laika uzskaite</h3>
-    <label>Sākums:</label>
-    <input type="time" id="start">
-    <label>Beigas:</label>
-    <input type="time" id="end">
+    <label for="start">Sākums:</label>
+	<input type="time" id="start" step="60" required>
+
+	<label for="end">Beigas:</label>
+	<input type="time" id="end" step="60" required>
     <label>Piezīmes:</label>
     <input type="text" id="notes" placeholder="Piem. Maiņa 1">
     <button onclick="sendData()">Saglabāt Google Sheet</button>
@@ -27,16 +28,18 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyRmCbL44Mr79zJ_V2dV1r13IW7KQFAT85SY-BkNwtjHndu-8s4ESnI9HNRu2t9VEymww/exec";
 
         function sendData() {
-            const start = document.getElementById('start').value;
-            const end = document.getElementById('end').value;
+            
             const notes = document.getElementById('notes').value;
             const status = document.getElementById('status');
+			
+            const start = document.getElementById('start').value;
+			const end = document.getElementById('end').value;
 
-            if (!start || !end) {
-                status.style.color = 'red';
-                status.innerText = 'Ievadiet abus laikus!';
-                return;
-            }
+			if (!start || !end) {
+				status.style.color = '#d9534f';
+				status.innerText = 'Lūdzu ievadiet abus laikus!';
+			return;
+}
 
             // Aprēķina stundas
             const [h1, m1] = start.split(':').map(Number);
