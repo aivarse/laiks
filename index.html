@@ -77,7 +77,6 @@
                 endH.add(new Option(val, val));
             }
 
-            // Minūtes ar 1 minūtes soli precizitātei (00-59)
             for (let i = 0; i < 60; i++) {
                 const val = i.toString().padStart(2, '0');
                 startM.add(new Option(val, val));
@@ -85,25 +84,30 @@
             }
         }
 
+        // Droša vērtības iestatīšana izkrītošajā sarakstā
+        function setSelectValue(id, value) {
+            const select = document.getElementById(id);
+            const strVal = String(value).padStart(2, '0');
+            select.value = strVal;
+        }
+
         function toggleTimer() {
             const startTime = localStorage.getItem('shift_start_time');
+            const now = new Date();
+
             if (!startTime) {
-                // Sākt maiņu: piefiksē sākuma laiku
-                const now = new Date();
+                // Sākt maiņu
                 localStorage.setItem('shift_start_time', now.toISOString());
                 
-                // Ieraksta sākuma laiku izvēlnēs
-                document.getElementById('start-h').value = now.getHours().toString().padStart(2, '0');
-                document.getElementById('start-m').value = now.getMinutes().toString().padStart(2, '0');
+                setSelectValue('start-h', now.getHours());
+                setSelectValue('start-m', now.getMinutes());
                 
                 updateUIState();
             } else {
-                // Apturēt maiņu: piefiksē beigu laiku
-                const now = new Date();
-                document.getElementById('end-h').value = now.getHours().toString().padStart(2, '0');
-                document.getElementById('end-m').value = now.getMinutes().toString().padStart(2, '0');
+                // Apturēt maiņu
+                setSelectValue('end-h', now.getHours());
+                setSelectValue('end-m', now.getMinutes());
                 
-                // Apstādina hronometra skaitīšanu ekrānā, bet atstāj iestatītos laikus
                 if (timerInterval) {
                     clearInterval(timerInterval);
                     timerInterval = null;
@@ -138,8 +142,8 @@
 
             if (startTimeStr) {
                 const start = new Date(startTimeStr);
-                document.getElementById('start-h').value = start.getHours().toString().padStart(2, '0');
-                document.getElementById('start-m').value = start.getMinutes().toString().padStart(2, '0');
+                setSelectValue('start-h', start.getHours());
+                setSelectValue('start-m', start.getMinutes());
 
                 btn.innerText = "APTURĒT MAIŅU";
                 btn.className = "btn btn-stop";
