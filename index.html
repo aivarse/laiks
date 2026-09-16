@@ -77,59 +77,60 @@
         initTimeSelects();
 
         function sendData() {
-            const sh = document.getElementById('start-h').value;
-            const sm = document.getElementById('start-m').value;
-            const eh = document.getElementById('end-h').value;
-            const em = document.getElementById('end-m').value;
-            const notes = document.getElementById('notes').value;
-            const status = document.getElementById('status');
+    const sh = document.getElementById('start-h').value;
+    const sm = document.getElementById('start-m').value;
+    const eh = document.getElementById('end-h').value;
+    const em = document.getElementById('end-m').value;
+    const notes = document.getElementById('notes').value;
+    const status = document.getElementById('status');
 
-            if (!sh || !sm || !eh || !em) {
-                status.style.color = '#d9534f';
-                status.innerText = 'Lūdzu izvēlieties visus laika laukus!';
-                return;
-            }
+    if (!sh || !sm || !eh || !em) {
+        status.style.color = '#d9534f';
+        status.innerText = 'Lūdzu izvēlieties visus laika laukus!';
+        return;
+    }
 
-            const start = `${sh}:${sm}`;
-            const end = `${eh}:${em}`;
+    const start = `${sh}:${sm}`;
+    const end = `${eh}:${em}`;
 
-            const h1 = Number(sh);
-            const m1 = Number(sm);
-            const h2 = Number(eh);
-            const m2 = Number(em);
+    const h1 = Number(sh);
+    const m1 = Number(sm);
+    const h2 = Number(eh);
+    const m2 = Number(em);
 
-            let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
-            if (duration < 0) duration += 24;
+    let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+    if (duration < 0) duration += 24;
 
-            status.style.color = '#0275d8';
-            status.innerText = 'Sūta datus...';
+    status.style.color = '#0275d8';
+    status.innerText = 'Sūta datus...';
 
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: new Date().toISOString().split('T')[0],
-                    startTime: start,
-                    endTime: end,
-                    durationHours: duration.toFixed(2),
-                    notes: notes
-                })
-            }).then(() => {
-                status.style.color = '#5cb85c';
-                status.innerText = `Saglabāts! (${start} - ${end}, ${duration.toFixed(2)} h)`;
-                
-                // Atiestata izvēlnes
-                document.getElementById('start-h').value = '';
-                document.getElementById('start-m').value = '';
-                document.getElementById('end-h').value = '';
-                document.getElementById('end-m').value = '';
-                document.getElementById('notes').value = '';
-            }).catch(err => {
-                status.style.color = '#d9534f';
-                status.innerText = 'Kļūda nosūtot datus!';
-            });
-        }
+    const payload = {
+        date: new Date().toISOString().split('T')[0],
+        startTime: start,
+        endTime: end,
+        durationHours: duration.toFixed(2),
+        notes: notes
+    };
+
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    }).then(() => {
+        status.style.color = '#5cb85c';
+        status.innerText = `Saglabāts! (${start} - ${end}, ${duration.toFixed(2)} h)`;
+        
+        document.getElementById('start-h').value = '';
+        document.getElementById('start-m').value = '';
+        document.getElementById('end-h').value = '';
+        document.getElementById('end-m').value = '';
+        document.getElementById('notes').value = '';
+    }).catch(err => {
+        status.style.color = '#d9534f';
+        status.innerText = 'Kļūda nosūtot datus!';
+    });
+}
     </script>
 </body>
 </html>
