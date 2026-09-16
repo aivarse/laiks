@@ -10,17 +10,29 @@
         h3 { margin-top: 0; text-align: center; }
         label { font-size: 13px; color: #555; display: block; margin-top: 12px; font-weight: bold; }
         
+        .timer-display { font-size: 32px; font-weight: bold; text-align: center; margin: 15px 0; color: #333; font-family: monospace; }
         .time-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
         select { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: #fff; }
         input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         
-        button { width: 100%; margin-top: 18px; padding: 12px; background: #4CAF50; color: white; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .btn { width: 100%; margin-top: 10px; padding: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; color: white; }
+        .btn-start { background: #2196F3; }
+        .btn-stop { background: #4CAF50; }
+        .btn-reset { background: #f44336; margin-top: 5px; font-size: 12px; padding: 6px; }
+        
         #status { margin-top: 12px; font-size: 13px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
         <h3>Laika uzskaite</h3>
+
+        <!-- Hronometra sekcija -->
+        <div class="timer-display" id="timer">00:00:00</div>
+        <button id="main-btn" class="btn btn-start" onclick="toggleTimer()">SĀKT MAIŅU</button>
+        <button id="reset-btn" class="btn btn-reset" onclick="resetTimer()" style="display:none;">Atcelt hronometru</button>
+
+        <hr style="margin-top: 20px; border: 0; border-top: 1px solid #eee;">
         
         <label>Sākums (24h):</label>
         <div class="time-row">
@@ -39,34 +51,31 @@
         <label for="notes">Piezīmes:</label>
         <input type="text" id="notes" placeholder="Piem. Maiņa 1">
         
-        <button onclick="sendData()">Saglabāt Google Sheet</button>
+        <button class="btn btn-stop" style="margin-top: 18px;" onclick="sendData()">Saglabāt Google Sheet</button>
         <div id="status"></div>
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwjh68nBsWi0bUB8NuLmD8x_HChX0FevDC0mEvTZ409dqQqA7aLp9wPJupFEkbN4PAj5A/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyRmCbL44Mr79zJ_V2dV1r13IW7KQFAT85SY-BkNwtjHndu-8s4ESnI9HNRu2t9VEymww/exec";
+        let timerInterval = null;
 
-        // Aizpilda stundu un minūšu izkrītošās izvēlnes
         function initTimeSelects() {
             const startH = document.getElementById('start-h');
             const endH = document.getElementById('end-h');
             const startM = document.getElementById('start-m');
             const endM = document.getElementById('end-m');
 
-            // Noklusējuma vietturi / izvēles
             startH.innerHTML = '<option value="">Stundas</option>';
             endH.innerHTML = '<option value="">Stundas</option>';
             startM.innerHTML = '<option value="">Minūtes</option>';
             endM.innerHTML = '<option value="">Minūtes</option>';
 
-            // Stundas (00 - 23)
             for (let i = 0; i < 24; i++) {
                 const val = i.toString().padStart(2, '0');
                 startH.add(new Option(val, val));
                 endH.add(new Option(val, val));
             }
 
-            // Minūtes (00 - 55 ar 5 minūšu soli vieglākai izvēlei)
             for (let i = 0; i < 60; i += 5) {
                 const val = i.toString().padStart(2, '0');
                 startM.add(new Option(val, val));
@@ -74,63 +83,140 @@
             }
         }
 
+        // Hronometra loģika
+        function toggleTimer() {
+            const startTime = localStorage.getItem('shift_start_time');
+            if (!startTime) {
+                // Sāk jaunu maiņu
+                const now = new Date();
+                localStorage.setItem('shift_start_time', now.toISOString());
+                updateUIState();
+            } else {
+                // Aptur un fiksē beigu laiku
+                const now = new Date();
+                const endH = now.getHours().toString().padStart(2, '0');
+                const endM = (Math.round(now.getMinutes() / 5) * 5 % 60).toString().padStart(2, '0');
+                
+                document.getElementById('end-h').value = endH;
+                document.getElementById('end-m').value = endM;
+                
+                resetTimer();
+            }
+        }
+
+        function updateTimerDisplay() {
+            const startTimeStr = localStorage.getItem('shift_start_time');
+            if (!startTimeStr) return;
+
+            const start = new Date(startTimeStr);
+            const now = new Date();
+            const diffMs = now - start;
+
+            const hrs = Math.floor(diffMs / 3600000).toString().padStart(2, '0');
+            const mins = Math.floor((diffMs % 3600000) / 60000).toString().padStart(2, '0');
+            const secs = Math.floor((diffMs % 60000) / 1000).toString().padStart(2, '0');
+
+            document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
+        }
+
+        function updateUIState() {
+            const startTimeStr = localStorage.getItem('shift_start_time');
+            const btn = document.getElementById('main-btn');
+            const resetBtn = document.getElementById('reset-btn');
+
+            if (startTimeStr) {
+                const start = new Date(startTimeStr);
+                const startH = start.getHours().toString().padStart(2, '0');
+                const startM = (Math.round(start.getMinutes() / 5) * 5 % 60).toString().padStart(2, '0');
+                
+                document.getElementById('start-h').value = startH;
+                document.getElementById('start-m').value = startM;
+
+                btn.innerText = "APTURĒT MAIŅU";
+                btn.className = "btn btn-stop";
+                resetBtn.style.display = "block";
+
+                if (!timerInterval) {
+                    timerInterval = setInterval(updateTimerDisplay, 1000);
+                }
+                updateTimerDisplay();
+            } else {
+                btn.innerText = "SĀKT MAIŅU";
+                btn.className = "btn btn-start";
+                resetBtn.style.display = "none";
+                document.getElementById('timer').innerText = "00:00:00";
+                
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            }
+        }
+
+        function resetTimer() {
+            localStorage.removeItem('shift_start_time');
+            updateUIState();
+        }
+
         initTimeSelects();
+        updateUIState(); // Pārbauda maiņas statusu pie lapas ielādes
 
         function sendData() {
-    const sh = document.getElementById('start-h').value;
-    const sm = document.getElementById('start-m').value;
-    const eh = document.getElementById('end-h').value;
-    const em = document.getElementById('end-m').value;
-    const notes = document.getElementById('notes').value;
-    const status = document.getElementById('status');
+            const sh = document.getElementById('start-h').value;
+            const sm = document.getElementById('start-m').value;
+            const eh = document.getElementById('end-h').value;
+            const em = document.getElementById('end-m').value;
+            const notes = document.getElementById('notes').value;
+            const status = document.getElementById('status');
 
-    if (!sh || !sm || !eh || !em) {
-        status.style.color = '#d9534f';
-        status.innerText = 'Lūdzu izvēlieties visus laika laukus!';
-        return;
-    }
+            if (!sh || !sm || !eh || !em) {
+                status.style.color = '#d9534f';
+                status.innerText = 'Lūdzu izvēlieties visus laika laukus!';
+                return;
+            }
 
-    const start = `${sh}:${sm}`;
-    const end = `${eh}:${em}`;
+            const start = `${sh}:${sm}`;
+            const end = `${eh}:${em}`;
 
-    const h1 = Number(sh);
-    const m1 = Number(sm);
-    const h2 = Number(eh);
-    const m2 = Number(em);
+            const h1 = Number(sh);
+            const m1 = Number(sm);
+            const h2 = Number(eh);
+            const m2 = Number(em);
 
-    let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
-    if (duration < 0) duration += 24;
+            let duration = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+            if (duration < 0) duration += 24;
 
-    status.style.color = '#0275d8';
-    status.innerText = 'Sūta datus...';
+            status.style.color = '#0275d8';
+            status.innerText = 'Sūta datus...';
 
-    const payload = {
-        date: new Date().toISOString().split('T')[0],
-        startTime: start,
-        endTime: end,
-        durationHours: duration.toFixed(2),
-        notes: notes
-    };
+            const payload = {
+                date: new Date().toISOString().split('T')[0],
+                startTime: start,
+                endTime: end,
+                durationHours: duration.toFixed(2),
+                notes: notes
+            };
 
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-    }).then(() => {
-        status.style.color = '#5cb85c';
-        status.innerText = `Saglabāts! (${start} - ${end}, ${duration.toFixed(2)} h)`;
-        
-        document.getElementById('start-h').value = '';
-        document.getElementById('start-m').value = '';
-        document.getElementById('end-h').value = '';
-        document.getElementById('end-m').value = '';
-        document.getElementById('notes').value = '';
-    }).catch(err => {
-        status.style.color = '#d9534f';
-        status.innerText = 'Kļūda nosūtot datus!';
-    });
-}
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                status.style.color = '#5cb85c';
+                status.innerText = `Saglabāts! (${start} - ${end}, ${duration.toFixed(2)} h)`;
+                
+                document.getElementById('start-h').value = '';
+                document.getElementById('start-m').value = '';
+                document.getElementById('end-h').value = '';
+                document.getElementById('end-m').value = '';
+                document.getElementById('notes').value = '';
+                resetTimer();
+            }).catch(err => {
+                status.style.color = '#d9534f';
+                status.innerText = 'Kļūda nosūtot datus!';
+            });
+        }
     </script>
 </body>
 </html>
