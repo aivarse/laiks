@@ -17,7 +17,8 @@
         
         .btn { width: 100%; margin-top: 10px; padding: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; color: white; }
         .btn-start { background: #2196F3; }
-        .btn-stop { background: #4CAF50; }
+        .btn-stop { background: #ff9800; }
+        .btn-save { background: #4CAF50; margin-top: 18px; }
         .btn-reset { background: #f44336; margin-top: 5px; font-size: 12px; padding: 6px; }
         
         #status { margin-top: 12px; font-size: 13px; text-align: center; font-weight: bold; }
@@ -27,7 +28,7 @@
     <div class="card">
         <h3>Laika uzskaite</h3>
 
-        <!-- Hronometra sekcija -->
+        <!-- Hronometrs -->
         <div class="timer-display" id="timer">00:00:00</div>
         <button id="main-btn" class="btn btn-start" onclick="toggleTimer()">SĀKT MAIŅU</button>
         <button id="reset-btn" class="btn btn-reset" onclick="resetTimer()" style="display:none;">Atcelt hronometru</button>
@@ -51,7 +52,7 @@
         <label for="notes">Piezīmes:</label>
         <input type="text" id="notes" placeholder="Piem. Maiņa 1">
         
-        <button class="btn btn-stop" style="margin-top: 18px;" onclick="sendData()">Saglabāt Google Sheet</button>
+        <button class="btn btn-save" onclick="sendData()">Saglabāt Google Sheet</button>
         <div id="status"></div>
     </div>
 
@@ -76,31 +77,42 @@
                 endH.add(new Option(val, val));
             }
 
-            for (let i = 0; i < 60; i += 5) {
+            // Minūtes ar 1 minūtes soli precizitātei (00-59)
+            for (let i = 0; i < 60; i++) {
                 const val = i.toString().padStart(2, '0');
                 startM.add(new Option(val, val));
                 endM.add(new Option(val, val));
             }
         }
 
-        // Hronometra loģika
         function toggleTimer() {
             const startTime = localStorage.getItem('shift_start_time');
             if (!startTime) {
-                // Sāk jaunu maiņu
+                // Sākt maiņu: piefiksē sākuma laiku
                 const now = new Date();
                 localStorage.setItem('shift_start_time', now.toISOString());
+                
+                // Ieraksta sākuma laiku izvēlnēs
+                document.getElementById('start-h').value = now.getHours().toString().padStart(2, '0');
+                document.getElementById('start-m').value = now.getMinutes().toString().padStart(2, '0');
+                
                 updateUIState();
             } else {
-                // Aptur un fiksē beigu laiku
+                // Apturēt maiņu: piefiksē beigu laiku
                 const now = new Date();
-                const endH = now.getHours().toString().padStart(2, '0');
-                const endM = (Math.round(now.getMinutes() / 5) * 5 % 60).toString().padStart(2, '0');
+                document.getElementById('end-h').value = now.getHours().toString().padStart(2, '0');
+                document.getElementById('end-m').value = now.getMinutes().toString().padStart(2, '0');
                 
-                document.getElementById('end-h').value = endH;
-                document.getElementById('end-m').value = endM;
+                // Apstādina hronometra skaitīšanu ekrānā, bet atstāj iestatītos laikus
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
                 
-                resetTimer();
+                const btn = document.getElementById('main-btn');
+                btn.innerText = "SĀKT JAUNU MAIŅU";
+                btn.className = "btn btn-start";
+                localStorage.removeItem('shift_start_time');
             }
         }
 
@@ -126,11 +138,8 @@
 
             if (startTimeStr) {
                 const start = new Date(startTimeStr);
-                const startH = start.getHours().toString().padStart(2, '0');
-                const startM = (Math.round(start.getMinutes() / 5) * 5 % 60).toString().padStart(2, '0');
-                
-                document.getElementById('start-h').value = startH;
-                document.getElementById('start-m').value = startM;
+                document.getElementById('start-h').value = start.getHours().toString().padStart(2, '0');
+                document.getElementById('start-m').value = start.getMinutes().toString().padStart(2, '0');
 
                 btn.innerText = "APTURĒT MAIŅU";
                 btn.className = "btn btn-stop";
@@ -145,21 +154,20 @@
                 btn.className = "btn btn-start";
                 resetBtn.style.display = "none";
                 document.getElementById('timer').innerText = "00:00:00";
-                
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
-                }
             }
         }
 
         function resetTimer() {
             localStorage.removeItem('shift_start_time');
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             updateUIState();
         }
 
         initTimeSelects();
-        updateUIState(); // Pārbauda maiņas statusu pie lapas ielādes
+        updateUIState();
 
         function sendData() {
             const sh = document.getElementById('start-h').value;
